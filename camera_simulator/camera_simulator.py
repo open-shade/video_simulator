@@ -36,7 +36,7 @@ class CameraSimulator(Node):
     def __init__(self, **kwargs):
         super().__init__("camera_simulator")
 
-        image_topic_ = self.declare_parameter("image_topic", "/image/image_raw").value
+        image_topic_ = kwargs['output_topic']
         camera_info_topic_ = self.declare_parameter("camera_info_topic", "/image/camera_info").value
 
         self.frame_id_ = self.declare_parameter("frame_id", "camera").value
@@ -182,6 +182,8 @@ def main(args=None):
     parser.add_argument("--type", type=str, default="video", help='type of "image" or "video')
     parser.add_argument("--start", type=int, default=0, help="starting position")
     parser.add_argument('--loop', action='store_true', help='loop video after end')
+    parser.add_argument('--output_topic', type=str, default="/image/image_raw", required=False, help="Change the "
+                                                                                                     "output topic")
     parser.set_defaults(loop=False)
 
     extra_args = parser.parse_args()
@@ -190,7 +192,7 @@ def main(args=None):
 
     camera_simulator = CameraSimulator(
         path=extra_args.path, type=extra_args.type, calibration_file=extra_args.calibration_file, start=extra_args.start,
-        loop=extra_args.loop
+        loop=extra_args.loop, topic=extra_args.output_topic
     )
 
     rclpy.spin(camera_simulator)
