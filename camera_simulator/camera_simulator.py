@@ -43,7 +43,14 @@ class CameraSimulator(Node):
 
         self.calibration_file = kwargs["calibration_file"]
 
-        self.image_publisher_ = self.create_publisher(Image, '/image/image_raw', 5)
+        image_publish_topic = '/image/image_raw'
+
+        # Use this to override when running the script outside a ROS workspace
+        if os.getenv('OUTPUT_TOPIC') is not None:
+            print(f"OUTPUT_TOPIC environment var is set, using {os.getenv('OUTPUT_TOPIC')}")
+            image_publish_topic = os.getenv('OUTPUT_TOPIC')
+
+        self.image_publisher_ = self.create_publisher(Image, image_publish_topic, 5)
         self.camera_info_publisher_ = self.create_publisher(CameraInfo, camera_info_topic_, 5)
 
         self.br = CvBridge()
