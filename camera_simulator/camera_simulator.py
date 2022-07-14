@@ -36,7 +36,6 @@ class CameraSimulator(Node):
     def __init__(self, **kwargs):
         super().__init__("camera_simulator")
 
-        image_topic_ = kwargs['topic']
         camera_info_topic_ = self.declare_parameter("camera_info_topic", "/image/camera_info").value
 
         self.frame_id_ = self.declare_parameter("frame_id", "camera").value
@@ -44,14 +43,12 @@ class CameraSimulator(Node):
 
         self.calibration_file = kwargs["calibration_file"]
 
-        self.image_publisher_ = self.create_publisher(Image, image_topic_, 5)
+        self.image_publisher_ = self.create_publisher(Image, '/image/image_raw', 5)
         self.camera_info_publisher_ = self.create_publisher(CameraInfo, camera_info_topic_, 5)
 
         self.br = CvBridge()
 
         self.type = kwargs["type"]
-
-        self.loop = kwargs["loop"]
 
         try:
             f = open(self.calibration_file)
@@ -75,16 +72,16 @@ class CameraSimulator(Node):
 
         self.calib = calib
 
-        path = kwargs['path']
+        path = '/root/video.mp4'
 
         if self.type == "video":
             if not os.path.isfile(path):
                 raise RuntimeError(f"Invalid video path: {path}")
 
             try:
-                self.vc = cv2.VideoCapture(kwargs["path"])
-                self.vc.set(cv2.CAP_PROP_POS_MSEC, kwargs["start"])
-            except:
+                self.vc = cv2.VideoCapture(path)
+                self.vc.set(cv2.CAP_PROP_POS_MSEC, 0)
+            except Exception:
                 print("End of file")
 
             video_fps = self.vc.get(cv2.CAP_PROP_FPS)
@@ -100,12 +97,8 @@ class CameraSimulator(Node):
     def image_callback(self, image_path=None):
         if self.type == "video":
             rval, image = self.vc.read()
-            if not rval and not self.loop:
-                self.get_logger().info("End of video, closing node...")
-                self.timer.cancel()
-                self.destroy_node()
-                exit()
-            elif not rval and self.loop:
+            if not rval:
+                print("Restarting video...")
                 self.vc.set(cv2.CAP_PROP_POS_MSEC, 0)
                 rval, image = self.vc.read()            
         elif image_path:
@@ -176,23 +169,11 @@ class CameraSimulator(Node):
 
 
 def main(args=None):
-    parser = argparse.ArgumentParser(description="Video file or files to load")
-    parser.add_argument("--path", type=str, default="", required=True, help="path to video folder")
-    parser.add_argument("--calibration_file", type=str, default="", help="path to video folder")
-    parser.add_argument("--type", type=str, default="video", help='type of "image" or "video')
-    parser.add_argument("--start", type=int, default=0, help="starting position")
-    parser.add_argument('--loop', action='store_true', help='loop video after end')
-    parser.add_argument('--output_topic', type=str, default="/image/image_raw", required=False, help="Change the "
-                                                                                                     "output topic")
-    parser.set_defaults(loop=False)
-
-    extra_args = parser.parse_args()
 
     rclpy.init(args=args)
 
     camera_simulator = CameraSimulator(
-        path=extra_args.path, type=extra_args.type, calibration_file=extra_args.calibration_file, start=extra_args.start,
-        loop=extra_args.loop, topic=extra_args.output_topic
+        path="", type="video", calibration_file="", start=0
     )
 
     rclpy.spin(camera_simulator)
